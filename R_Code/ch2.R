@@ -303,7 +303,7 @@ for(s in 1:n_simu) {
   # Main loopの処理
   tmp_df <- tibble(
     x = runif(n = K, min = -a, max = a), 
-    P_x = x * exp(-(x)^2 / 2) / sqrt(2 * pi), 
+    P_x = exp(-(x)^2 / 2) / sqrt(2 * pi), 
     k = 1:K, 
     simulation = as.factor(s)
   ) %>% 
