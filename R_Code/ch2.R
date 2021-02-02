@@ -8,11 +8,48 @@ library(gganimate)
 
 # 2.1 そもそも乱数とは ------------------------------------------------------------
 
+# 2.1.1 一様乱数 -------------------------------------------------------
+
+# 乱数の個数を指定
+K <- 100000
+
+# 一様分布の最小値を指定
+a <- -2
+
+# 一様分布の最大値を指定
+b <- 3
+
+# 一様乱数をデータフレームに格納
+uniform_df <- tibble(
+  x = runif(n = K, min = a, max = b) # 乱数を生成
+)
+
+# ヒストグラムをプロット
+ggplot(uniform_df, aes(x = x)) + 
+  geom_histogram(binwidth = 0.1) + 
+  labs(title = "Uniform Distribution", 
+       subtitle = paste0("K=", K))
+
+
+# x軸の値と対応する確率密度をデータフレームに格納
+uniform_df <- tibble(
+  x = seq(a - 1, b + 1, 0.01), # x軸の描画範囲
+  P_x = dunif(x = x, min = a, max = b) # 確率密度を計算
+)
+
+# 一様分布をプロット
+ggplot(uniform_df, aes(x = x, y = P_x)) + 
+  geom_line() + # 折れ線グラフ
+  labs(title = "Uniform Distribution", 
+       subtitle = paste0("a=", a, ", b=", b), 
+       y = "density")
+
+
 # 2.1.2 ガウス乱数(正規乱数) -------------------------------------------------------
 
 ### 図2.1 ガウス関数 -----
 
-# 作図用のデータフレームを作成
+# ガウス乱数をデータフレームに格納
 gaussian_function_df <- tibble(
   x = seq(-4, 4, 0.01), 
   f_x = exp(-x^2)
@@ -64,11 +101,9 @@ ggplot(gaussian_distribution_df, aes(x = x, y = P_x)) +
 
 ### 図2.3 中心極限定理 -----
 
-# 作図用のデータフレームを作成
-gaussian_distribution_df <- tibble(
-  x = seq(-1.5, 1.5, 0.01), 
-  density = dnorm(x = x, mean = 0, sd = 1)
-)
+# 一様分布の範囲を指定
+a <- -0.5
+b <- 0.5
 
 # 誤差の種類数を指定
 K <- 100
@@ -77,7 +112,7 @@ K <- 100
 sum_error <- 0 # 変数を初期化
 for(k in 1:K) {
   # 一様乱数生成
-  k_error <- runif(n = 1000000, min = -0.5, max = 0.5)
+  k_error <- runif(n = 1000000, min = -a, max = b)
   
   # 誤差を加算
   sum_error <- sum_error + k_error
@@ -89,7 +124,7 @@ error_df = tibble(
 )
 
 # for()無しver
-error_df <- runif(n = 1000000 * K, min = -0.5, max = 0.5) %>% 
+error_df <- runif(n = 1000000 * K, min = a, max = b) %>% 
   matrix(ncol = K) %>% 
   rowSums() %>% 
   tibble(error = .)
@@ -103,6 +138,10 @@ ggplot(error_df, aes(x = error / sqrt(K))) +
 
 ### アニメーション -----
 
+# 一様分布の範囲を指定
+a <- -0.5
+b <- 0.5
+
 # 誤差の種類を指定
 K <- 100
 
@@ -110,7 +149,7 @@ K <- 100
 error_animation_df <- tibble() # 変数を初期化
 for(k in 1:K) {
   # k種類の誤差を加算
-  tmp_df <- (runif(n = 10000 * k, min = -0.5, max = 0.5) / sqrt(k)) %>% # (x / √K)としている
+  tmp_df <- (runif(n = 10000 * k, min = a, max = b) / sqrt(k)) %>% # (x / √K)としている
     matrix(ncol = k) %>% 
     rowSums() %>% 
     tibble(
@@ -152,7 +191,7 @@ ggplot(circle_df, aes(x = x, y = y)) +
   labs(title = expression(x^2 + y^2 == 1))
 
 
-# 繰り返し回数(K)を指定
+# 繰り返し回数を指定
 K <- 1000
 
 # 変数を初期化
@@ -199,7 +238,7 @@ ggplot() +
 
 ### 図2.5 扇形の面積の推移 -----
 
-# 繰り返し回数(K)を指定
+# 繰り返し回数を指定
 K <- 1000
 
 # シミュレーション回数を指定
@@ -259,11 +298,11 @@ for(s in 1:n_simu) {
   # Main loopの処理
   tmp_df <- tibble(
     x = runif(n = K, min = a, max = b), # 乱数を生成
-    y = sqrt(1 - x^2), 
+    f_x = sqrt(1 - x^2), 
     k = 1:K, # 繰り返し回数
     simulation = as.factor(s) # 何回目のシミュレーションか
   ) %>% 
-    dplyr::mutate(E_f_x = cumsum(y) / k) # 平均値を計算
+    dplyr::mutate(E_f_x = cumsum(f_x) / k) # 平均値を計算
   
   # 結果を結合
   res_df <- rbind(res_df, tmp_df)
@@ -288,9 +327,6 @@ ggplot(res_df, aes(x = k, y = E_f_x, color = simulation)) +
 
 ### 図2.7 ガウス分布の積分値 -----
 
-# 繰り返し回数(K)を指定
-K <- 1000
-
 # 積分範囲を指定
 a = 2
 
@@ -307,6 +343,9 @@ ggplot(gaussian_distribution_df, aes(x = x, y = P_x)) +
        subtitle = expression(paste(mu == 0, ", ", sigma == 1)), 
        y = "density")
 
+
+# 繰り返し回数を指定
+K <- 1000
 
 # シミュレーション回数を指定
 n_simu <- 100
@@ -363,7 +402,7 @@ for(s in 1:n_simu) {
       x^2 + y^2 < 1, true = TRUE, false = FALSE
     ), # 扇形の中か判定
     f_xy = dplyr::if_else(
-      label == TRUE, true = 2 * pi * sqrt(1 - x^2 - y^2), false = 0
+      label == TRUE, true = sqrt(1 - x^2 - y^2), false = 0
     ), # 扇形の中のとき面積を計算:式(2.9)
     k = 1:K, # 繰り返し番号
     simulation = as.factor(s) # シミュレーション番号
@@ -381,7 +420,7 @@ for(s in 1:n_simu) {
 }
 
 # 推移をプロット
-ggplot(res_df, aes(x = k, y = E_f_xy, color = simulation)) + 
+ggplot(res_df, aes(x = k, y = E_f_xy * 2 * pi, color = simulation)) + 
   geom_line(alpha = 0.5) + # 体積の推移
   geom_hline(aes(yintercept = 4 * pi / 3), linetype = "dashed") + # 真の体積
   theme(legend.position = "none") + # 凡例
@@ -394,7 +433,7 @@ ggplot(res_df, aes(x = k, y = E_f_xy, color = simulation)) +
 
 # 2.4.2 ガウス分布から得られる期待値 -----------------------------------------------------
 
-# 繰り返し回数(K)を指定
+# 繰り返し回数を指定
 K <- 1000
 
 # パラメータを指定
