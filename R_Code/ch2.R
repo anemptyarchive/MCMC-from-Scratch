@@ -231,10 +231,11 @@ for(s in 1:n_simu) {
 
 # 推移をプロット
 ggplot(res_df, aes(x = k, y = rate_in, color = simulation)) + 
-  geom_line(alpha = 0.5) + # in率(面積)の推移
+  geom_line(alpha = 0.5) + # 面積(in率)の推移
   geom_hline(aes(yintercept = pi / 4), linetype = "dashed") + # 真の面積
   theme(legend.position = "none") + # 凡例
-  labs(subtitle = paste0("simulation:", n_simu), 
+  labs(title = expression(N[("in")] / K), 
+       subtitle = paste0("simulation:", n_simu), 
        y = "rate")
 
 
@@ -262,7 +263,7 @@ for(s in 1:n_simu) {
     k = 1:K, # 繰り返し回数
     simulation = as.factor(s) # 何回目のシミュレーションか
   ) %>% 
-    dplyr::mutate(E_f_x = cumsum(y) / k) # 関数の平均を計算
+    dplyr::mutate(E_f_x = cumsum(y) / k) # 平均値を計算
   
   # 結果を結合
   res_df <- rbind(res_df, tmp_df)
@@ -275,7 +276,7 @@ for(s in 1:n_simu) {
 
 # 推移をプロット
 ggplot(res_df, aes(x = k, y = E_f_x, color = simulation)) + 
-  geom_line(alpha = 0.5) + # 平均値(面積)の推移
+  geom_line(alpha = 0.5) + # 面積の推移
   geom_hline(aes(yintercept = pi / 4), linetype = "dashed") + # 真の値
   theme(legend.position = "none") + # 凡例
   labs(title = expression(f(x) == sqrt(1 - x^2)), 
@@ -285,7 +286,7 @@ ggplot(res_df, aes(x = k, y = E_f_x, color = simulation)) +
 
 # 2.2.3 ガウス積分 -------------------------------------------------------------
 
-### 図2.7 ガウス分布の期待値 -----
+### 図2.7 ガウス分布の積分値 -----
 
 # 繰り返し回数(K)を指定
 K <- 1000
@@ -321,20 +322,20 @@ for(s in 1:n_simu) {
     k = 1:K, # 繰り返し番号
     simulation = as.factor(s) # シミュレーション番号
   ) %>% 
-    dplyr::mutate(E_f_x = cumsum(P_x) / k) # 期待値計算
+    dplyr::mutate(E_P_x = cumsum(P_x) / k) # 平均値を計算
   
   # 結果を結合
   res_df <- rbind(res_df, tmp_df)
   
   # 途中経過を表示
   print(paste0(
-    "simulation: ", s, ", E: ", round(tmp_df[["E_f_x"]][K], 3)
+    "simulation: ", s, ", E: ", round(tmp_df[["E_P_x"]][K], 3)
   ))
 }
 
 # 推移をプロット
-ggplot(res_df, aes(x = k, y = E_f_x * 2 * a, color = simulation)) + 
-  geom_line(alpha = 0.5) + # 平均値の推移
+ggplot(res_df, aes(x = k, y = E_P_x * 2 * a, color = simulation)) + 
+  geom_line(alpha = 0.5) + # 積分値の推移
   geom_hline(aes(yintercept = 1), linetype = "dashed") + # 真の値
   ylim(c(0, 4)) + # y軸の表示範囲
   theme(legend.position = "none") + # 凡例
@@ -379,9 +380,9 @@ for(s in 1:n_simu) {
   ))
 }
 
-# 結果を作図
+# 推移をプロット
 ggplot(res_df, aes(x = k, y = E_f_xy, color = simulation)) + 
-  geom_line(alpha = 0.5) + # 平均値(体積)の推移
+  geom_line(alpha = 0.5) + # 体積の推移
   geom_hline(aes(yintercept = 4 * pi / 3), linetype = "dashed") + # 真の体積
   theme(legend.position = "none") + # 凡例
   labs(title = expression(f(x, y) == 2 * pi * sqrt(1 - x^2 - y^2)), 
@@ -391,5 +392,58 @@ ggplot(res_df, aes(x = k, y = E_f_xy, color = simulation)) +
 
 # 2.4 ガウス乱数を用いた期待値の計算 -----------------------------------------------------
 
+# 2.4.2 ガウス分布から得られる期待値 -----------------------------------------------------
 
+# 繰り返し回数(K)を指定
+K <- 1000
+
+# パラメータを指定
+mu <- 0
+sigma <- 1
+
+# シミュレーション回数を指定
+n_simu <- 100
+
+# シミュレーション
+res_df <- tibble() # 初期化
+for(s in 1:n_simu) {
+  # Main loopの処理
+  tmp_df <- tibble(
+    x = rnorm(n = K, mean = mu, sd = sigma), # 乱数を生成
+    f_x = x, 
+    f_x2 = x^2, 
+    k = 1:K, # 繰り返し番号
+    simulation = as.factor(s) # シミュレーション番号
+  ) %>% 
+    dplyr::mutate(E_f_x = cumsum(f_x) / k)%>%  # 平均値を計算
+    dplyr::mutate(E_f_x2 = cumsum(f_x2) / k) # 平均値を計算
+  
+  # 結果を結合
+  res_df <- rbind(res_df, tmp_df)
+  
+  # 途中経過を表示
+  print(paste0(
+    "simulation: ", s, 
+    ", E[f(X)]: ", round(tmp_df[["E_f_x"]][K], 3), 
+    ", E[f(X^2)]: ", round(tmp_df[["E_f_x2"]][K], 3)
+  ))
+}
+
+# xの期待値の推移をプロット
+ggplot(res_df, aes(x = k, y = E_f_x, color = simulation)) + 
+  geom_line(alpha = 0.5) + # 期待値の推移
+  geom_hline(aes(yintercept = mu), linetype = "dashed") + # 真の値
+  theme(legend.position = "none") + # 凡例
+  labs(title = expression(paste(f(x) == x, ", ", x %~% N(mu, sigma))), 
+       subtitle = paste0("mu=", 0, ", sigma=", 1), 
+       y = "E[f(x)]")
+
+# xの2乗の期待値の推移をプロット
+ggplot(res_df, aes(x = k, y = E_f_x2, color = simulation)) + 
+  geom_line(alpha = 0.5) + # 期待値の推移
+  geom_hline(aes(yintercept = mu^2 + sigma^2), linetype = "dashed") + # 真の値
+  theme(legend.position = "none") + # 凡例
+  labs(title = expression(paste(f(x) == x^2, ", ", x %~% N(mu, sigma))), 
+       subtitle = paste0("mu=", 0, ", sigma=", 1), 
+       y = "E[f(x^2)]")
 
