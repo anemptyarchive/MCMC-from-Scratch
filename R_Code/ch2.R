@@ -86,9 +86,9 @@ sigma <- 4
 # 作図用のデータフレームを作成
 gaussian_distribution_df <- tibble(
   x = seq(-10, 10, 0.01), 
-  C_N = sqrt(2 * pi) * sigma, # 規格化係数
-  P_x = exp(-(x - mu)^2 / (2 * sigma^2)) / C_N, 
-  #P_x = dnorm(x = x, mean = mu, sd = sigma)
+  C_N = sqrt(2 * pi) * sigma, # 規格化定数
+  P_x = exp(-(x - mu)^2 / (2 * sigma^2)) / C_N, # 確率密度
+  #P_x = dnorm(x = x, mean = mu, sd = sigma) # 確率密度
 )
 
 # ガウス分布をプロット
@@ -463,8 +463,8 @@ for(s in 1:n_simu) {
   # 途中経過を表示
   print(paste0(
     "simulation: ", s, 
-    ", E[f(X)]: ", round(tmp_df[["E_f_x"]][K], 3), 
-    ", E[f(X^2)]: ", round(tmp_df[["E_f_x2"]][K], 3)
+    ", E[x]: ", round(tmp_df[["E_f_x"]][K], 3), 
+    ", E[x^2]: ", round(tmp_df[["E_f_x2"]][K], 3)
   ))
 }
 
@@ -473,16 +473,17 @@ ggplot(res_df, aes(x = k, y = E_f_x, color = simulation)) +
   geom_line(alpha = 0.5) + # 期待値の推移
   geom_hline(aes(yintercept = mu), linetype = "dashed") + # 真の値
   theme(legend.position = "none") + # 凡例
-  labs(title = expression(paste(f(x) == x, ", ", x %~% N(mu, sigma))), 
+  labs(title = expression(paste(f(x) == x, ", ", x %~% N(mu == 0, sigma == 1))), 
        subtitle = paste0("mu=", 0, ", sigma=", 1), 
-       y = "E[f(x)]")
+       y = "E[x]")
 
 # xの2乗の期待値の推移をプロット
 ggplot(res_df, aes(x = k, y = E_f_x2, color = simulation)) + 
   geom_line(alpha = 0.5) + # 期待値の推移
   geom_hline(aes(yintercept = mu^2 + sigma^2), linetype = "dashed") + # 真の値
   theme(legend.position = "none") + # 凡例
-  labs(title = expression(paste(f(x) == x^2, ", ", x %~% N(mu, sigma))), 
+  labs(title = expression(paste(f(x) == x^2, ", ", x %~% N(mu == 0, sigma == 1))), 
        subtitle = paste0("mu=", 0, ", sigma=", 1), 
-       y = "E[f(x^2)]")
+       y = "E[x^2]")
+
 
