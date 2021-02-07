@@ -10,20 +10,31 @@ library(gganimate)
 
 ### 指数関数 -----
 
-# 指数関数を計算
-exp_df <- tibble(
+# 指数関数のグラフをプロット
+tibble(
   x = seq(-1, 1, 0.01), 
   exp_x = exp(x)
-)
-
-# 指数関数のグラフをプロット
-ggplot(exp_df, aes(x = x, y = exp_x)) + 
-  geom_line() + 
-  labs(title = expression(y == exp(x)), 
-       y = "y")
+) %>% 
+  ggplot(aes(x = x, y = exp_x)) + 
+    geom_line() + 
+    labs(title = expression(y == exp(x)), 
+         y = "y")
 
 
-# 4.2期待値計算の具体例 ------------------------------------------------------------
+### 対数関数 -----
+
+# 対数関数のグラフをプロット
+tibble(
+  x = seq(-1, 2, 0.01), 
+  log_x = log(x)
+) %>% 
+  ggplot(aes(x = x, y = log_x)) + 
+    geom_line() + 
+    labs(title = expression(y == log(x)), 
+         y = "y")
+
+
+# 4.2 期待値計算の具体例 ------------------------------------------------------------
 
 ### 図4.1 メトロポリス法 -----
 
@@ -76,22 +87,24 @@ update_df <- tibble(
 # 真の分布を計算
 true_df <- tibble(
   x = seq(-c, c, 0.01), # 描画範囲
-  density = exp(-x^2 / 2) / sqrt(2 * pi) # 確率密度
-  #density = dnorm(x = x, mean = 0, sd = 1) # 確率密度
+  P_x = exp(-x^2 / 2) / sqrt(2 * pi) # 確率密度
+  #P_x = dnorm(x = x, mean = 0, sd = 1) # 確率密度
 )
 
 # ヒストグラムを作成
 ggplot() + 
   geom_histogram(data = update_df, aes(x = x, y = ..density..), 
                  binwidth = 0.05) + # xのヒストグラム
-  geom_line(data = true_df, aes(x = x, y = density), 
+  geom_line(data = true_df, aes(x = x, y = P_x), 
             linetype = "dashed", color = "red") + # 真の確率密度
   labs(title = "Gaussian Distribution", 
        subtitle = paste0("K=", K, ", mu=", 0, ", sigma=", 1))
 
 
 # 更新値の推移をグラフ化
-ggplot(update_df, aes(x = k, y = x)) + 
+update_df %>% 
+  filter(k >= 1, k <= 2000) %>% # 表示範囲を指定
+  ggplot(aes(x = k, y = x)) + 
   geom_line() + 
   labs(title = "Metropolis Method")
 
@@ -99,12 +112,10 @@ ggplot(update_df, aes(x = k, y = x)) +
 # 期待値を計算
 expected_df <- tibble(
   k = 1:K, 
-  x = trace_x
-) %>% 
-  mutate(
-    E_x = cumsum(x) / k, 
-    E_x2 = cumsum(x^2) / k
-  )
+  x = trace_x, 
+  E_x = cumsum(x) / k, 
+  E_x2 = cumsum(x^2) / k
+)
 
 # 期待値の推移をプロット
 ggplot(expected_df, aes(x = k)) + 
@@ -173,13 +184,13 @@ for(k in 1:K) {
 hist_anime <- ggplot() + 
   geom_histogram(data = anime_df, aes(x = x, y = ..density..), 
                  binwidth = 0.05, fill = "purple", color = "purple") + # ヒストグラム
-  geom_line(data = true_df, aes(x = x, y = density), 
+  geom_line(data = true_df, aes(x = x, y = P_x), 
             linetype = "dashed", color = "red") + # 真の確率密度
   gganimate::transition_manual(k) + # フレーム
   ylim(c(0, 1)) + # y軸の範囲
   labs(title = "Metropolis Method", 
        subtitle = "k={current_frame}", 
-       x = "x", y = "density")
+       x = "x", y = "P(x))")
 
 # gif画像を作成
 gganimate::animate(hist_anime, nframes = n_frame, fps = 20)
@@ -193,11 +204,12 @@ gganimate::animate(hist_anime, nframes = n_frame, fps = 20)
 
 # 確率分布を指定
 fn_P <- function(x) {
-  dnorm(x = x, mean = 0, sd = 1)
+  exp(-x^2 / 2) / sqrt(2 * pi)
+  #dnorm(x = x, mean = 0, sd = 1)
 }
 
 # 一様分布の範囲(ステップ幅)を指定
-c <- 7
+c <- 4
 
 # 真の分布を計算
 true_df <- tibble(
@@ -231,7 +243,7 @@ tibble(
 K <- 10000
 
 # 初期値を指定
-x <- 100
+x <- 20
 
 # Main loop
 trace_x <- rep(0, K)
@@ -242,8 +254,8 @@ for(k in 1:K) {
   # テスト値を生成
   r <- runif(n = 1, min = 0, max = 1)
   
-  # xを更新
-  if(r < exp(fn_S(x) - fn_S(dash_x))) { # メトロポリステスト
+  # メトロポリステストによりxを更新
+  if(r < exp(fn_S(x) - fn_S(dash_x))) {
     x <- dash_x
   }
   
@@ -267,7 +279,9 @@ ggplot() +
        subtitle = paste0("K=", K))
 
 # 更新推移をグラフ化
-ggplot(update_df, aes(x = k, y = x)) + 
+update_df %>% 
+  filter(k >= 1, k <= 2000) %>% # 表示範囲を指定
+  ggplot(aes(x = k, y = x)) + 
   geom_line() + 
   labs(title = "Metropolis Method")
 
@@ -275,12 +289,10 @@ ggplot(update_df, aes(x = k, y = x)) +
 # 期待値を計算
 expected_df <- tibble(
   k = 1:K, 
-  x = trace_x
-) %>% 
-  mutate(
-    E_x = cumsum(x) / k, 
-    E_x2 = cumsum(x^2) / k
-  )
+  x = trace_x, 
+  E_x = cumsum(x) / k, 
+  E_x2 = cumsum(x^2) / k
+)
 
 # 期待値の推移をプロット
 ggplot(expected_df, aes(x = k)) + 
@@ -288,14 +300,16 @@ ggplot(expected_df, aes(x = k)) +
   geom_hline(aes(yintercept = 0), linetype = "dashed", color = "purple") + # 真のxの期待値
   geom_line(aes(y = E_x2), color = "blue") + # x^2の期待値
   geom_hline(aes(yintercept = 1), linetype = "dashed", color = "blue") + # 真のx^2の期待値
+  ylim(c(-5, 5)) + # y軸の表示範囲
   labs(title = "Metropolis Method", 
        y = "E[f(x)]")
 
 
 # 4.3.3 自己相関長とジャックナイフ法 ----------------------------------------------------
 
-### ？ -----
+### ジャックナイフ誤差？ -----
 
+sample_x <- expected_df[["E_x2"]]
 # 1グループの要素数を指定
 w <- 50
 
@@ -306,13 +320,13 @@ n <- K / w
 f_tilde <- rep(0, n)
 for(l in 1:n) {
   # l番目のグループの要素を取得
-  tmp_x <- trace_x[((l - 1) * w + 1):(l * w)]
+  tmp_x <- sample_x[((l - 1) * w + 1):(l * w)]
   
   # l番目のグループの平均値を計算
   f_tilde[l] <- sum(tmp_x^2) / w
 }
 
-f_bar <- sum(trace_x^2) / K
+f_bar <- sum(sample_x^2) / K
 delta_w <- sqrt(sum((f_tilde - f_bar)^2) / n / (n - 1))
 
 jk_w_df <- tibble(
@@ -321,12 +335,11 @@ jk_w_df <- tibble(
 )
 
 ggplot(jk_w_df, aes(x = l, y = x)) + 
-  geom_line() + 
-  xlim(c())
+  geom_line()
 
 
-max_w <- 100
-delta_w <- rep(0, max_w)
+max_w <- 1000
+trace_delta_w <- rep(0, max_w)
 for(w in 1:max_w) {
   
   # グループ数を計算
@@ -336,23 +349,24 @@ for(w in 1:max_w) {
   f_tilde <- rep(0, n)
   for(l in 1:n) {
     # l番目のグループの要素を取得
-    tmp_x <- trace_x[((l - 1) * w + 1):(l * w)]
+    tmp_x <- sample_x[((l - 1) * w + 1):(l * w)]
     
     # l番目のグループの平均値を計算
     f_tilde[l] <- sum(tmp_x^2) / w
   }
   
-  f_bar <- sum(trace_x^2) / K
-  delta_w[w] <- sqrt(sum((f_tilde - f_bar)^2) / n / (n - 1))
+  f_bar <- sum(sample_x^2) / K
+  trace_delta_w[w] <- sqrt(sum((f_tilde - f_bar)^2) / n / (n - 1))
 }
 
 jk_df <- tibble(
   w = 1:max_w, 
-  delta_w = delta_w
+  delta_w = trace_delta_w
 )
 
-ggplot(jk_df, aes(x = w, y = delta_w)) + 
-  geom_line()
+ggplot(jk_df, aes(x = w)) + 
+  geom_line(aes(y = delta_w)) + 
+  geom_line(aes(y = -delta_w))
 
 
 # 4.4 ガウス分布以外の例 -----------------------------------------------------------
@@ -383,12 +397,23 @@ fn_S <- function(x) {
   -log(exp(-0.5 * (x - 3)^2) + exp(-0.5 * (x + 3)^2))
 }
 
+# 確率分布と負の対数尤度をプロット
+tibble(
+  x = seq(-c, c, 0.01), 
+  P_x = fn_P(x), 
+  S_x = fn_S(x)
+) %>% 
+  ggplot(aes(x)) + 
+  geom_line(aes(y = P_x)) + 
+  geom_line(aes(y = S_x), linetype = "dashed") + 
+  labs(y = "f(x)")
+
 
 # 繰り返し回数を指定
 K <- 100000
 
 # 初期値を指定
-x <- 0
+x <- 4
 
 # Main loop
 trace_x <- rep(0, K)
@@ -399,8 +424,8 @@ for(k in 1:K) {
   # テスト値を生成
   r <- runif(n = 1, min = 0, max = 1)
   
-  # xを更新
-  if(r < exp(fn_S(x) - fn_S(dash_x))) { # メトロポリステスト
+  # メトロポリステストによりxを更新
+  if(r < exp(fn_S(x) - fn_S(dash_x))) {
     x <- dash_x
   }
   
@@ -607,4 +632,34 @@ anime_graph <- ggplot() +
 # gif画像を作成
 gganimate::animate(anime_graph, nframes = n_frame, fps = 20)
 
+
+# 4.5 複雑な数値積分への応用 ---------------------------------------------------------
+
+### 規格化因子の積分 -----
+
+
+# 作用(負の対数尤度)を指定
+fn_S <- function(x) {
+  # データ数を取得
+  n <- length(x)
+  
+  # 受け皿を初期化
+  S_x <- rep(0, n)
+  
+  # 確率密度を計算
+  for(i in 1:n) {
+    x_i <- x[i]
+    if(x_i >= 0) {
+      S_x_i <- 0.5 * x_i^2 + log(sqrt(2 * pi))
+    } else if(x_i >= -1) {
+      S_x_i <- -log(2 / pi * sqrt(1 - x_i^2))
+    } else if(x_i < -1) {
+      S_x_i <- -log(0)
+    }
+    S_x[i] <- S_x_i
+  }
+  
+  # 出力
+  S_x
+}
 
