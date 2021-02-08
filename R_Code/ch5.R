@@ -83,47 +83,64 @@ ggplot() +
 ### 図5.3-4 :1つ -----
 
 # 関数を指定
-fn_s_physics <- function(x) {
+fn_phy <- function(x) {
   (2 + tanh(x)) / 3
 }
-fn_s_baseball <- function(y) {
+fn_bb <- function(y) {
   #  データ数を取得
   n <- length(y)
   
   # 受け皿を初期化
-  P_y <- rep(0, n)
+  f_y <- rep(0, n)
   
   # 出力を計算
   for(i in 1:n) {
+    # i番目のデータを取得
     y_i <- y[i]
+    
+    # 式(5.4)の計算
     if(y_i <= 2) {
-      P_y_i <- 0
+      f_y_i <- 0
     } else if(y_i > 2) {
-      P_y_i <- y_i^2 * 0.5
+      f_y_i <- y_i^2 * 0.5
     }
-    P_y[i] <- P_y_i
+    
+    # 計算結果を格納
+    f_y[i] <- f_y_i
   }
   
   # 出力
-  P_y
+  f_y
 }
+
+# 関数の出力をプロット
+tibble(
+  x = seq(-c, c, 0.01), 
+  f_x = fn_phy(x), 
+  f_y = fn_bb(x)
+) %>% 
+  ggplot(aes(x = x)) + 
+    geom_line(aes(y = f_x)) + 
+    geom_line(aes(y = f_y)) + 
+    labs(x, "x, y", y = "f_phy(x), f_bb(y)")
+
 
 # 期待値を計算
 expected_df <- update_df %>% 
   dplyr::mutate(
-    s_x = fn_s_physics(x), 
-    s_y = fn_s_baseball(y)
+    f_x = fn_phy(x), 
+    f_y = fn_bb(y)
   ) %>% 
   dplyr::mutate(
-    E_s_x = cumsum(s_x) / k, 
-    E_s_y = cumsum(s_y) / k
+    E_f_x = cumsum(f_x) / k, 
+    E_f_y = cumsum(f_y) / k
   )
 
 # 推移をプロット
 ggplot(expected_df, aes(x = k)) + 
-  geom_line(aes(y = E_s_x), color = "orange") + 
+  geom_line(aes(y = E_f_x), color = "orange") + 
   geom_hline(aes(yintercept = 2 / 3), linetype = "dashed", color = "orange") + 
-  geom_line(aes(y = E_s_y), color = "#00A986") + 
+  geom_line(aes(y = E_f_y), color = "#00A986") + 
   geom_hline(aes(yintercept = 0.1305), linetype = "dashed", color = "#00A986") + 
   labs(y = "E[f]")
 
@@ -131,10 +148,10 @@ ggplot(expected_df, aes(x = k)) +
 ### 図5.3-4 :複数 -----
 
 # 繰り返し回数を指定
-K <- 10000
+K <- 100
 
 # シミュレーション回数を指定
-n_simu <- 100
+n_simu <- 10
 
 # Main loop
 trace_df <- tibble()
@@ -151,27 +168,21 @@ for(k in 1:K) {
   
   # 全てのシミュレーションにおけるk回目の更新
   tmp_df <- tibble(
-    simulation = as.factor(1:n_simu), 
-    k = k, 
-    old_x = x, 
-    old_y = y, 
-    S_xy = fn_S(old_x, old_y), 
-    delta_x = runif(n = n_simu, min = -c, max = c), 
-    delta_y = runif(n = n_simu, min = -c, max = c), 
-    S_dash_xy = fn_S(old_x + delta_x, old_y + delta_y), 
-    r = runif(n = n_simu, min = 0, max = 1)
-  ) %>% 
-    # メトロポリステスト
-    dplyr::mutate(
-      test = dplyr::if_else(
-        r < exp(S_xy - S_dash_xy), true = 1, false = 0
-      )
-    ) %>% 
-    # 値を更新
-    dplyr::mutate(
-      new_x = old_x + test * delta_x, 
-      new_y = old_y + test * delta_y
-    ) 
+    simulation = as.factor(1:n_simu), # シミュレーション番号
+    k = k, # 繰り返し番号
+    old_x = x, # 前ステップのx
+    old_y = y, # 前ステップのy
+    S_xy = fn_S(old_x, old_y), # 前ステップの作用を計算
+    delta_x = runif(n = n_simu, min = -c, max = c), # xの変化量を生成
+    delta_y = runif(n = n_simu, min = -c, max = c), # yの変化量を生成
+    S_dash_xy = fn_S(old_x + delta_x, old_y + delta_y), # 更新候補の作用を計算
+    r = runif(n = n_simu, min = 0, max = 1), # テスト値を計算
+    test = dplyr::if_else(
+      r < exp(S_xy - S_dash_xy), true = 1, false = 0
+    ), # メトロポリステスト
+    new_x = old_x + test * delta_x, # xを更新
+    new_y = old_y + test * delta_y # yを更新
+  )
   
   # 結果を結合
   trace_df <- rbind(trace_df, tmp_df)
@@ -195,13 +206,13 @@ for(s in 1:n_simu) {
     ) %>% 
     # 関数の計算
     dplyr::mutate(
-      s_x = fn_s_physics(x), 
-      s_y = fn_s_baseball(y)
+      f_x = fn_phy(x), 
+      f_y = fn_bb(y)
     ) %>% 
     # 期待値を計算
     dplyr::mutate(
-      E_s_x = cumsum(s_x) / k, 
-      E_s_y = cumsum(s_y) / k
+      E_f_x = cumsum(f_x) / k, 
+      E_f_y = cumsum(f_y) / k
     )
   
   # 計算結果を結合
@@ -209,20 +220,20 @@ for(s in 1:n_simu) {
 }
 
 # 図5.3をプロット
-ggplot(expected_df, aes(x = k, y = E_s_x, color = simulation)) + 
+ggplot(expected_df, aes(x = k, y = E_f_x, color = simulation)) + 
   geom_line(alpha = 0.5) + 
   geom_hline(aes(yintercept = 2 / 3), linetype = "dashed", color = "orange") + 
   theme(legend.position = "none") + 
   labs(title = "Metropolis Method", 
        subtitle = paste0("simulation:", n_simu), 
-       y = "E[s_phy(x)]")
+       y = "E[f_phy(x)]")
 
 # 図5.4をプロット
-ggplot(expected_df, aes(x = k, y = E_s_y, color = simulation)) + 
+ggplot(expected_df, aes(x = k, y = E_f_y, color = simulation)) + 
   geom_line(alpha = 0.5) + 
   geom_hline(aes(yintercept = 0.1305), linetype = "dashed", color = "#00A986") + 
   theme(legend.position = "none") + 
   labs(title = "Metropolis Method", 
        subtitle = paste0("simulation:", n_simu), 
-       y = "E[s_bb(y)]")
+       y = "E[f_bb(y)]")
 
