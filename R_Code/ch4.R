@@ -34,6 +34,31 @@ tibble(
          y = "y")
 
 
+### メトロポリステスト -----
+
+# 試行回数を指定
+N <- 1500
+
+# 確率を指定
+p <- 0.7
+
+# シミュレーション
+tibble(
+  x = 1:N, 
+  bin = sample(c(0, 1), size = N, prob = c(1 - p, p), replace = TRUE), # 二項分布
+  met = runif(n = N, min = 0, max = 1) <= p, # メトロポリステスト
+  rate_bin = cumsum(bin) / x, 
+  rate_met = cumsum(met) / x
+) %>% 
+  ggplot(aes(x = x)) + 
+    geom_line(aes(y = rate_bin), color = "blue", alpha = 1) + # 確率に従い更新
+    geom_line(aes(y = rate_met), color = "#00A968", alpha = 1) + # 一様乱数rを使い更新
+    geom_hline(aes(yintercept = p), color = "purple", linetype = "dashed") + # 真の確率
+    ylim(c(0, 1)) + 
+    labs(title = expression(r < exp(S(x) - S(x^{new}))), 
+         y = "rate")
+
+
 # 4.2 期待値計算の具体例 ------------------------------------------------------------
 
 ### 図4.1 メトロポリス法 -----
@@ -130,7 +155,7 @@ ggplot(expected_df, aes(x = k)) +
 ### 図4.1 メトロポリス法:gif -----
 
 # 繰り返し回数を指定
-K <- 10000
+K <- 100000
 
 # 一様乱数の範囲(ステップ幅)を指定
 c <- 4
@@ -139,7 +164,7 @@ c <- 4
 x <- 0
 
 # (重いので)表示する間隔を指定
-n_interval <- 25
+n_interval <- 100
 
 # フレーム数を計算:(割り切れるように要設定)
 n_frame <- K / n_interval
@@ -240,7 +265,7 @@ tibble(
 
 
 # 繰り返し回数を指定
-K <- 10000
+K <- 100000
 
 # 初期値を指定
 x <- 20
@@ -404,9 +429,8 @@ tibble(
   S_x = fn_S(x)
 ) %>% 
   ggplot(aes(x)) + 
-  geom_line(aes(y = P_x)) + 
-  geom_line(aes(y = S_x), linetype = "dashed") + 
-  labs(y = "f(x)")
+    geom_line(aes(y = P_x)) + 
+    labs(y = "f(x)")
 
 
 # 繰り返し回数を指定
@@ -567,19 +591,19 @@ ggplot() +
        subtitle = paste0("K=", K))
 
 
-# メトロポリス法:gif -----
+### メトロポリス法:gif -----
 
 # 繰り返し回数を指定
-K <- 10000
+K <- 100000
 
 # 一様分布の範囲(ステップ幅)を指定
-c <- 3
+c <- 4
 
 # 初期値を指定
-x <- 1
+x <- 0
 
 # アニメーション表示間隔を指定
-n_interval <- 40
+n_interval <- 100
 
 # フレーム数を計算:(割り切れるように要設定)
 n_frame <- K / n_interval
@@ -630,36 +654,10 @@ anime_graph <- ggplot() +
        subtitle = "k={current_frame}")
 
 # gif画像を作成
-gganimate::animate(anime_graph, nframes = n_frame, fps = 20)
+gganimate::animate(anime_graph, nframes = n_frame, fps = 20, width = 320, height = 320)
 
 
 # 4.5 複雑な数値積分への応用 ---------------------------------------------------------
 
 ### 規格化因子の積分 -----
-
-
-# 作用(負の対数尤度)を指定
-fn_S <- function(x) {
-  # データ数を取得
-  n <- length(x)
-  
-  # 受け皿を初期化
-  S_x <- rep(0, n)
-  
-  # 確率密度を計算
-  for(i in 1:n) {
-    x_i <- x[i]
-    if(x_i >= 0) {
-      S_x_i <- 0.5 * x_i^2 + log(sqrt(2 * pi))
-    } else if(x_i >= -1) {
-      S_x_i <- -log(2 / pi * sqrt(1 - x_i^2))
-    } else if(x_i < -1) {
-      S_x_i <- -log(0)
-    }
-    S_x[i] <- S_x_i
-  }
-  
-  # 出力
-  S_x
-}
 
